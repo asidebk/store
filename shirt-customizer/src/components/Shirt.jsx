@@ -1,15 +1,21 @@
 import { useGLTF } from '@react-three/drei'
 import { useControls } from 'leva'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Color, TextureLoader } from 'three'
 import { useFrame, useLoader, useThree } from '@react-three/fiber'
 
 export default function Shirt() {
   const { scene, materials } = useGLTF('/models/Shirt.glb')
   const shirtRef = useRef()
-  const { camera } = useThree()
+  const { camera, viewport } = useThree()
 
-  // Load fabric textures
+  const isMobile = window.innerWidth < 768 // Tailwind/Bootstrap mobile breakpoint
+
+  // Dynamic model position/scale based on screen size
+  const modelPosition = isMobile ? [0, -1.2, 0] : [0, -0.5, 0]
+  const modelScale = isMobile ? [2.5, 2.5, 2.5] : [3, 3, 3]
+
+  // Load textures
   const fabrics = {
     Cotton: useLoader(TextureLoader, '/textures/1.jpg'),
     Leather: useLoader(TextureLoader, '/textures/2.jpg'),
@@ -26,7 +32,6 @@ export default function Shirt() {
 
   const color = useMemo(() => new Color(shirtColor), [shirtColor])
 
-  // Apply color/material/texture
   useEffect(() => {
     Object.values(materials).forEach((mat) => {
       if (mat.isMeshStandardMaterial) {
@@ -41,14 +46,12 @@ export default function Shirt() {
     })
   }, [color, roughness, metalness, fabricType, materials, fabrics])
 
-  // Animate shirt (slow rotation)
   useFrame((_, delta) => {
     if (shirtRef.current) {
       shirtRef.current.rotation.y += delta * 0.3
     }
   })
 
-  // Camera transition on click
   const handleClick = () => {
     camera.position.set(0, 0, 0)
     camera.lookAt(0, 0, 0)
@@ -58,8 +61,8 @@ export default function Shirt() {
     <primitive
       ref={shirtRef}
       object={scene}
-      scale={[3, 3, 3]}
-      position={[0, -0.5, 0]}
+      scale={modelScale}
+      position={modelPosition}
       onClick={handleClick}
       dispose={null}
     />
