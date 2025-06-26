@@ -1,21 +1,26 @@
 import { useGLTF } from '@react-three/drei'
 import { useControls } from 'leva'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Color, TextureLoader } from 'three'
 import { useFrame, useLoader, useThree } from '@react-three/fiber'
+import { animated, useSpring } from '@react-spring/three'
 
-export default function Shirt() {
+export default function Shirt({ active }) {
   const { scene, materials } = useGLTF('/models/Shirt.glb')
   const shirtRef = useRef()
-  const { camera, viewport } = useThree()
+  const { camera, size } = useThree()
 
-  const isMobile = window.innerWidth < 768 // Tailwind/Bootstrap mobile breakpoint
+  const isMobile = size.width < 768
+  const basePos = isMobile ? [0, -1.2, 0] : [0, -0.5, 0]
 
-  // Dynamic model position/scale based on screen size
-  const modelPosition = isMobile ? [0, -1.2, 0] : [0, -0.5, 0]
-  const modelScale = isMobile ? [2.5, 2.5, 2.5] : [3, 3, 3]
+  // Animate position from offscreen to center when "Customize" is clicked
+  const { position } = useSpring({
+    position: active ? [0, 0, 0] : basePos,
+    config: { tension: 120, friction: 14 },
+  })
 
-  // Load textures
+  const scale = isMobile ? [2.5, 2.5, 2.5] : [3, 3, 3]
+
   const fabrics = {
     Cotton: useLoader(TextureLoader, '/textures/1.jpg'),
     Leather: useLoader(TextureLoader, '/textures/2.jpg'),
@@ -40,7 +45,7 @@ export default function Shirt() {
         mat.metalness = metalness
         mat.map = fabrics[fabricType]
         mat.map.repeat.set(2, 2)
-        mat.map.wrapS = mat.map.wrapT = 1000 // RepeatWrapping
+        mat.map.wrapS = mat.map.wrapT = 1000
         mat.needsUpdate = true
       }
     })
@@ -52,18 +57,12 @@ export default function Shirt() {
     }
   })
 
-  const handleClick = () => {
-    camera.position.set(0, 0, 0)
-    camera.lookAt(0, 0, 0)
-  }
-
   return (
-    <primitive
+    <animated.primitive
       ref={shirtRef}
       object={scene}
-      scale={modelScale}
-      position={modelPosition}
-      onClick={handleClick}
+      scale={scale}
+      position={position}
       dispose={null}
     />
   )
